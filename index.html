@@ -302,10 +302,12 @@
 
     .gallery-item {
       position: relative;
+      display: block;
       aspect-ratio: 1 / 1;
       overflow: hidden;
       border-radius: 6px;
       background: #eef1f7;
+      cursor: pointer;
     }
 
     .gallery-item img {
@@ -318,15 +320,104 @@
 
     .gallery-item:hover img { transform: scale(1.05); }
 
-    .gallery-more {
+    .gallery-item.selected { outline: 3px solid var(--samsung-blue); outline-offset: -3px; }
+
+    /* Selection checkbox in the corner of each thumbnail */
+    .gallery-check {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      z-index: 2;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
-      font-size: 0.95rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--samsung-blue), #4662d9);
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 2px 6px rgba(7, 22, 63, 0.25);
+      cursor: pointer;
     }
+
+    .gallery-check input {
+      width: 17px;
+      height: 17px;
+      margin: 0;
+      cursor: pointer;
+      accent-color: var(--samsung-blue);
+    }
+
+    /* Lightbox (enlarged view) */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 20px;
+      background: rgba(7, 22, 63, 0.94);
+    }
+
+    .lightbox[hidden] { display: none; }
+
+    .lb-img {
+      max-width: 92vw;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+      background: #0b1636;
+    }
+
+    .lb-close,
+    .lb-nav {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+    }
+
+    .lb-close {
+      top: 16px;
+      right: 16px;
+      width: 44px;
+      height: 44px;
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+
+    .lb-nav {
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    .lb-prev { left: 12px; }
+    .lb-next { right: 12px; }
+    .lb-close:hover,
+    .lb-nav:hover { background: rgba(255, 255, 255, 0.3); }
+
+    .lb-bar {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .lb-count { color: rgba(255, 255, 255, 0.85); font-size: 0.9rem; font-weight: 600; }
 
     .actions {
       display: flex;
@@ -352,9 +443,18 @@
       font-weight: 650;
       line-height: 1.25;
       text-decoration: none;
+      font-family: inherit;
+      cursor: pointer;
     }
 
     .button.secondary { background: #ffffff; color: var(--samsung-blue); }
+    .button:disabled { opacity: 0.55; cursor: default; }
+
+    .photo-status {
+      margin: 16px auto 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
 
     .validity-note {
       margin-top: 18px;
@@ -477,14 +577,15 @@
         <h2>Today's Photos</h2>
         <p class="resource-copy">Here are a few moments captured during your visit. Download the full set below &mdash; they're yours to keep.</p>
 
-        <!-- Thumbnail preview (auto-hidden if no images configured) -->
+        <!-- Thumbnails (each one downloads on tap). Auto-hidden until photos load. -->
         <div class="gallery" data-gallery hidden></div>
 
         <div class="actions">
-          <a class="button" data-photo-link href="YOUR_GOOGLE_DRIVE_LINK" target="_blank" rel="noopener noreferrer">
-            Download Visit Photos
-          </a>
+          <button class="button" type="button" data-download-all disabled>Download All Photos</button>
+          <button class="button secondary" type="button" data-download-selected disabled>Download Selected (0)</button>
         </div>
+
+        <p class="photo-status" data-photo-status>Loading photos&hellip;</p>
 
         <p class="privacy-note" data-privacy-note>
           These photos were taken during your visit and are shared solely for your personal use.
@@ -525,6 +626,21 @@
     <footer class="footer">Samsung Electronics Gumi &middot; VIP Corporate Tour</footer>
   </main>
 
+  <!-- Lightbox (enlarged photo view) -->
+  <div class="lightbox" data-lightbox hidden>
+    <button class="lb-close" type="button" data-lb-close aria-label="Close">&times;</button>
+    <button class="lb-nav lb-prev" type="button" data-lb-prev aria-label="Previous photo">&lsaquo;</button>
+    <img class="lb-img" data-lb-img alt="">
+    <button class="lb-nav lb-next" type="button" data-lb-next aria-label="Next photo">&rsaquo;</button>
+    <div class="lb-bar">
+      <span class="lb-count" data-lb-count></span>
+      <button class="button lb-download" type="button" data-lb-download>Download This Photo</button>
+    </div>
+  </div>
+
+  <!-- JSZip: bundles all photos into a single ZIP in the browser (no server, no login) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <script>
     // ─────────────────────────────────────────────────────────────
     //  Edit ONLY this block for each visit. Everything else is automatic.
@@ -538,15 +654,20 @@
       // Site availability (static text)
       validityNote: "This website is available for 7 days.",
 
-      // Links
-      photoLink: "https://drive.google.com/drive/folders/1giqHvipjRZeUFEl3WAkcCC6ct6aCgIBi",
+      // Feedback form link
       feedbackLink: "https://docs.google.com/forms/d/e/1FAIpQLSeVbsUxDOQaSTNYFWLBavRwA2a-u0YRUihbj7cgxVjk5Q8OcA/viewform?usp=dialog",
 
       // Contact for download help
       hostEmail: "sw717.choi@samsung.com",
 
-      // Photo thumbnails — PUBLIC image urls. Leave [] to hide the preview grid.
-      galleryImages: []
+      // ── PHOTOS ──────────────────────────────────────────────
+      //  Live workflow: name the day's photos 1.jpg, 2.jpg, 3.jpg ... and
+      //  upload them into the repo's "photos" folder. They appear here
+      //  automatically — no code edit, no login for guests.
+      //  (Loaded from the SAME site, so there is no API limit and no login.)
+      photoDir: "photos",                  // folder in the repo holding this visit's photos
+      photos: [],                          // optional manual list, e.g. ["photos/a.jpg"] — skips numbered scan
+      zipName: "Samsung-Gumi-Visit-Photos.zip"
     };
     // ─────────────────────────────────────────────────────────────
 
@@ -581,8 +702,7 @@
     // Photo access (static text)
     setText("[data-validity-note]", VISIT_CONFIG.validityNote);
 
-    // Links
-    setLink("[data-photo-link]", VISIT_CONFIG.photoLink);
+    // Feedback link
     setLink("[data-feedback-link]", VISIT_CONFIG.feedbackLink);
 
     // Contact for download help
@@ -592,30 +712,190 @@
       emailEl.href = "mailto:" + VISIT_CONFIG.hostEmail;
     }
 
-    // Gallery preview
+    // ── Photos: no-login download from the same site (no GitHub API) ──
+    const nameOf = (path) => decodeURIComponent(path.split("/").pop());
+
+    // Read the photo list from a same-origin manifest.json (built by GitHub Actions).
+    // No GitHub API => no rate limit, works on any network. Photos keep their real names.
+    const getPhotos = async () => {
+      const dir = (VISIT_CONFIG.photoDir || "photos").replace(/^\/+|\/+$/g, "");
+
+      // Manual override: config.photos = ["photos/a.jpg", ...]
+      if (Array.isArray(VISIT_CONFIG.photos) && VISIT_CONFIG.photos.length) {
+        return VISIT_CONFIG.photos.map((p) => ({ name: nameOf(p), url: p }));
+      }
+
+      try {
+        const res = await fetch(dir + "/manifest.json", { cache: "no-store" });
+        if (!res.ok) return [];
+        const names = await res.json();
+        return (Array.isArray(names) ? names : [])
+          .filter((n) => typeof n === "string" && /\.(jpe?g|png|webp|gif)$/i.test(n))
+          // Encode the file name so spaces / non-ASCII names resolve as valid URLs.
+          .map((n) => ({ name: n, url: dir + "/" + encodeURIComponent(n) }));
+      } catch (e) {
+        return [];
+      }
+    };
+
     const gallery = $("[data-gallery]");
-    const imgs = VISIT_CONFIG.galleryImages || [];
-    if (gallery && imgs.length) {
-      const MAX = 7; // show up to 7 thumbs + a "+N" tile
-      const shown = imgs.slice(0, MAX);
-      shown.forEach((src) => {
+    const statusEl = $("[data-photo-status]");
+    const downloadAllBtn = $("[data-download-all]");
+    const downloadSelBtn = $("[data-download-selected]");
+
+    let PHOTOS = [];
+    const selected = new Set();
+
+    const renderPhotos = (items) => {
+      PHOTOS = items;
+      if (!items.length) {
+        if (statusEl) statusEl.textContent = "Your photos will appear here shortly. Please check back in a few minutes.";
+        if (downloadAllBtn) { downloadAllBtn.disabled = true; downloadAllBtn.textContent = "Photos Coming Soon"; }
+        if (downloadSelBtn) downloadSelBtn.hidden = true;
+        return;
+      }
+
+      items.forEach((it, i) => {
         const fig = document.createElement("div");
         fig.className = "gallery-item";
+
         const im = document.createElement("img");
-        im.src = src;
-        im.alt = "Visit photo";
+        im.src = it.url;
+        im.alt = "Visit photo " + (i + 1);
         im.loading = "lazy";
+        im.addEventListener("click", () => openLightbox(i)); // tap image => enlarge
         fig.appendChild(im);
+
+        // Selection checkbox (does NOT open the lightbox)
+        const label = document.createElement("label");
+        label.className = "gallery-check";
+        label.addEventListener("click", (e) => e.stopPropagation());
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.setAttribute("aria-label", "Select photo " + (i + 1));
+        cb.addEventListener("change", () => toggleSelect(i, cb.checked, fig));
+        label.appendChild(cb);
+        fig.appendChild(label);
+
         gallery.appendChild(fig);
       });
-      if (imgs.length > MAX) {
-        const more = document.createElement("div");
-        more.className = "gallery-item gallery-more";
-        more.textContent = "+" + (imgs.length - MAX);
-        gallery.appendChild(more);
-      }
       gallery.hidden = false;
+
+      if (statusEl) statusEl.textContent = "Tap a photo to view it larger. Tick the boxes to pick specific photos, or download them all below.";
+      downloadAllBtn.disabled = false;
+      downloadAllBtn.textContent = "Download All Photos (" + items.length + ")";
+      downloadAllBtn.addEventListener("click", () => downloadItems(items, downloadAllBtn));
+      downloadSelBtn.addEventListener("click", () => {
+        const chosen = [...selected].sort((a, b) => a - b).map((i) => PHOTOS[i]);
+        downloadItems(chosen, downloadSelBtn);
+      });
+      updateSelectedBtn();
+    };
+
+    const toggleSelect = (i, on, fig) => {
+      if (on) { selected.add(i); fig.classList.add("selected"); }
+      else { selected.delete(i); fig.classList.remove("selected"); }
+      updateSelectedBtn();
+    };
+
+    const updateSelectedBtn = () => {
+      const n = selected.size;
+      downloadSelBtn.textContent = "Download Selected (" + n + ")";
+      downloadSelBtn.disabled = n === 0;
+    };
+
+    // One photo => download directly; several => bundle into a ZIP.
+    const downloadItems = (items, btn) => {
+      if (!items.length) return;
+      if (items.length === 1) { downloadSingle(items[0]); return; }
+      zipAndDownload(items, btn);
+    };
+
+    const downloadSingle = (it) => {
+      const a = document.createElement("a");
+      a.href = it.url;
+      a.download = it.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    };
+
+    const zipAndDownload = (items, btn) => {
+      if (typeof JSZip === "undefined") {
+        alert("The ZIP download isn't available right now. Please save photos one by one.");
+        return;
+      }
+      const label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Preparing ZIP…";
+      const zip = new JSZip();
+      Promise.all(items.map((it) =>
+        fetch(it.url).then((r) => r.blob()).then((b) => zip.file(it.name, b))
+      ))
+        .then(() => zip.generateAsync({ type: "blob" }))
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = VISIT_CONFIG.zipName || "visit-photos.zip";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 3000);
+          btn.disabled = false;
+          btn.textContent = label;
+        })
+        .catch(() => {
+          alert("Something went wrong while preparing the ZIP. Please save photos one by one.");
+          btn.disabled = false;
+          btn.textContent = label;
+        });
+    };
+
+    // ── Lightbox (enlarged view) ──────────────────────────────────
+    const lb = $("[data-lightbox]");
+    const lbImg = $("[data-lb-img]");
+    const lbCount = $("[data-lb-count]");
+    let lbIndex = 0;
+
+    const showLb = () => {
+      const it = PHOTOS[lbIndex];
+      if (!it) return;
+      lbImg.src = it.url;
+      lbImg.alt = it.name;
+      lbCount.textContent = (lbIndex + 1) + " / " + PHOTOS.length;
+    };
+    const openLightbox = (i) => {
+      lbIndex = i;
+      showLb();
+      lb.hidden = false;
+      document.body.style.overflow = "hidden";
+    };
+    const closeLightbox = () => {
+      lb.hidden = true;
+      lbImg.src = "";
+      document.body.style.overflow = "";
+    };
+    const lbStep = (d) => {
+      lbIndex = (lbIndex + d + PHOTOS.length) % PHOTOS.length;
+      showLb();
+    };
+
+    if (lb) {
+      $("[data-lb-close]").addEventListener("click", closeLightbox);
+      $("[data-lb-prev]").addEventListener("click", () => lbStep(-1));
+      $("[data-lb-next]").addEventListener("click", () => lbStep(1));
+      $("[data-lb-download]").addEventListener("click", () => downloadSingle(PHOTOS[lbIndex]));
+      lb.addEventListener("click", (e) => { if (e.target === lb) closeLightbox(); });
+      document.addEventListener("keydown", (e) => {
+        if (lb.hidden) return;
+        if (e.key === "Escape") closeLightbox();
+        else if (e.key === "ArrowLeft") lbStep(-1);
+        else if (e.key === "ArrowRight") lbStep(1);
+      });
     }
+
+    if (gallery) getPhotos().then(renderPhotos);
   </script>
 </body>
 </html>
