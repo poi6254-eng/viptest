@@ -92,42 +92,13 @@
       align-items: center;
       gap: 10px;
       max-width: 100%;
-      padding: 7px 12px 7px 7px;
+      padding: 8px 14px;
       border: 1px solid rgba(255, 255, 255, 0.34);
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.18);
       box-shadow: 0 14px 38px rgba(7, 22, 63, 0.16);
       backdrop-filter: blur(14px);
       text-align: left;
-    }
-
-    .visitor-logo {
-      position: relative;
-      width: 38px;
-      height: 38px;
-      flex: 0 0 auto;
-      overflow: hidden;
-      border-radius: 50%;
-      background: var(--orange);
-    }
-
-    .visitor-logo img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .logo-fallback {
-      position: absolute;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      font-size: 0.63rem;
-      font-weight: 800;
-      line-height: 1;
     }
 
     .chip-text {
@@ -509,7 +480,6 @@
           linear-gradient(90deg, rgba(7, 22, 63, 0.58), rgba(7, 22, 63, 0.18));
       }
       .topline { flex-direction: column; align-items: center; gap: 16px; margin-bottom: 58px; }
-      .visitor-chip { padding-right: 13px; }
       .site-name { font-size: 0.8rem; }
       h1 { font-size: clamp(2.05rem, 10vw, 2.72rem); }
       .subtitle { font-size: 1.02rem; }
@@ -532,13 +502,9 @@
       <div class="topline">
         <div class="site-name">Samsung Electronics Gumi</div>
         <div class="visitor-chip" aria-label="Customized visitor welcome">
-          <div class="visitor-logo" aria-hidden="true">
-            <img data-visitor-logo src="" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="logo-fallback" data-logo-fallback>orange</div>
-          </div>
           <div>
             <span class="chip-text">Prepared for</span>
-            <span class="chip-name" data-visitor-name>Orange</span>
+            <span class="chip-name" data-visitor-name>SAMSUNG</span>
           </div>
         </div>
       </div>
@@ -561,7 +527,7 @@
       <div class="details" aria-label="Visit details">
         <div class="detail">
           <span class="detail-label">Company</span>
-          <span class="detail-value" data-company>Orange</span>
+          <span class="detail-value" data-company>SAMSUNG</span>
         </div>
         <div class="detail">
           <span class="detail-label">Visitor</span>
@@ -569,7 +535,7 @@
         </div>
         <div class="detail">
           <span class="detail-label">Visit Date</span>
-          <span class="detail-value" data-visit-date>June 15, 2026</span>
+          <span class="detail-value" data-visit-date>August 27, 2026</span>
         </div>
       </div>
 
@@ -646,10 +612,9 @@
     //  Edit ONLY this block for each visit. Everything else is automatic.
     // ─────────────────────────────────────────────────────────────
     const VISIT_CONFIG = {
-      companyName: "Orange",               // visiting company
+      companyName: "SAMSUNG",              // visiting company
       guestName: "Tony",                        // visitor name(s) — e.g. "Jean Dupont" or "Orange Delegation"
-      visitDateISO: "2026-06-15",          // YYYY-MM-DD — shown as "June 15, 2026"
-      logoSrc: "",                          // PUBLIC url or data:image (local C:\ paths won't load on phones)
+      visitDateISO: "2026-08-27",          // YYYY-MM-DD — shown as "August 27, 2026"
 
       // Site availability (static text)
       validityNote: "This website is available for 7 days.",
@@ -685,19 +650,8 @@
     // Company + visitor
     setText("[data-visitor-name]", VISIT_CONFIG.companyName);
     setText("[data-company]", VISIT_CONFIG.companyName);
-    setText("[data-logo-fallback]", VISIT_CONFIG.companyName);
     setText("[data-guest-name]", VISIT_CONFIG.guestName);
     setText("[data-visit-date]", formatDate(VISIT_CONFIG.visitDateISO));
-
-    // Logo (only set when a real source is provided)
-    const logo = $("[data-visitor-logo]");
-    if (logo && VISIT_CONFIG.logoSrc) {
-      logo.src = VISIT_CONFIG.logoSrc;
-      logo.alt = VISIT_CONFIG.companyName + " logo";
-    } else if (logo) {
-      logo.style.display = "none";
-      logo.nextElementSibling.style.display = "flex";
-    }
 
     // Photo access (static text)
     setText("[data-validity-note]", VISIT_CONFIG.validityNote);
