@@ -87,40 +87,6 @@
       letter-spacing: 0.03em;
     }
 
-    .visitor-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      max-width: 100%;
-      padding: 8px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.34);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.18);
-      box-shadow: 0 14px 38px rgba(7, 22, 63, 0.16);
-      backdrop-filter: blur(14px);
-      text-align: left;
-    }
-
-    .chip-text {
-      display: block;
-      color: rgba(255, 255, 255, 0.82);
-      font-size: 0.72rem;
-      font-weight: 650;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .chip-name {
-      display: block;
-      margin-top: 1px;
-      color: #ffffff;
-      font-size: 0.86rem;
-      font-weight: 650;
-      line-height: 1.2;
-      white-space: nowrap;
-    }
-
     h1, h2, p { margin: 0; }
 
     h1 {
@@ -501,12 +467,6 @@
     <div class="hero-inner">
       <div class="topline">
         <div class="site-name">Samsung Electronics Gumi</div>
-        <div class="visitor-chip" aria-label="Customized visitor welcome">
-          <div>
-            <span class="chip-text">Prepared for</span>
-            <span class="chip-name" data-visitor-name>SAMSUNG</span>
-          </div>
-        </div>
       </div>
 
       <h1>Welcome to<br>Samsung Electronics Gumi</h1>
@@ -613,8 +573,8 @@
     // ─────────────────────────────────────────────────────────────
     const VISIT_CONFIG = {
       companyName: "SAMSUNG",              // visiting company
-      guestName: "Tony",                        // visitor name(s) — e.g. "Jean Dupont" or "Orange Delegation"
-      visitDateISO: "2026-08-27",          // YYYY-MM-DD — shown as "August 27, 2026"
+      guestName: "TM",                        // visitor name(s) — e.g. "Jean Dupont" or "Orange Delegation"
+      visitDateISO: "2026-09-04",          // YYYY-MM-DD — shown as "August 27, 2026"
 
       // Site availability (static text)
       validityNote: "This website is available for 7 days.",
@@ -648,7 +608,6 @@
     };
 
     // Company + visitor
-    setText("[data-visitor-name]", VISIT_CONFIG.companyName);
     setText("[data-company]", VISIT_CONFIG.companyName);
     setText("[data-guest-name]", VISIT_CONFIG.guestName);
     setText("[data-visit-date]", formatDate(VISIT_CONFIG.visitDateISO));
